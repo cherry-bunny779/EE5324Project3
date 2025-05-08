@@ -1,0 +1,15 @@
+//Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv {1 {vlog -work work -sv -stats=none //Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+-- Compiling module fixedpoint_tb
+
+Top level modules:
+	fixedpoint_tb
+
+} {} {}} //Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv {1 {vlog -work work -sv -stats=none //Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+-- Compiling module tb
+
+Top level modules:
+	tb
+
+} {} {}}

@@ -1,0 +1,86 @@
+m255
+K4
+z2
+!s11f vlog 2020.1 2020.02, Feb 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+d//Mac/Home/Documents/vlsi2/nandMux
+vconv_pool
+Z0 DXx6 sv_std 3 std 0 22 VYECXdT12H8WgbUP_5Y6:3
+!s110 1746746978
+!i10b 1
+!s100 GEYk>_1IJSe`Ob6O=Y>932
+Z1 !s11b Dg1SIo80bB@j0V0VzS_@n1
+IYO;OGO[3PW<4W444oA>:C0
+Z2 VDg1SIo80bB@j0V0VzS_@n1
+S1
+Z3 d//Mac/Home/Documents/vlsi2/project3-convolution
+w1746746975
+8//Mac/Home/Documents/vlsi2/project3-convolution/conv_pool.sv
+F//Mac/Home/Documents/vlsi2/project3-convolution/conv_pool.sv
+!i122 25
+L0 1 266
+Z4 OV;L;2020.1;71
+r1
+!s85 0
+31
+!s108 1746746978.000000
+!s107 //Mac/Home/Documents/vlsi2/project3-convolution/conv_pool.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|//Mac/Home/Documents/vlsi2/project3-convolution/conv_pool.sv|
+!i113 1
+Z5 o-work work -sv
+Z6 tCvgOpt 0
+vfixedpoint_tb
+R0
+Z7 !s110 1746746637
+!i10b 1
+!s100 XA0SheJDU@QP3FO@f^N[02
+R1
+IeQWl`cYkZF<HA7]QC9_j;0
+R2
+S1
+R3
+w1746696547
+8//Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv
+F//Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv
+!i122 24
+L0 1 26
+R4
+r1
+!s85 0
+31
+Z8 !s108 1746746637.000000
+!s107 //Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|//Mac/Home/Documents/vlsi2/project3-convolution/fixedpoint_tb.sv|
+!i113 1
+R5
+R6
+vtb
+R0
+R7
+!i10b 1
+!s100 2`?l;h9P67S@bCT4bb3133
+R1
+IKJoKge;BAR]Ck]B=lFioJ1
+R2
+S1
+R3
+w1746746162
+8//Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv
+F//Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv
+!i122 22
+L0 3 177
+R4
+r1
+!s85 0
+31
+R8
+!s107 //Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|//Mac/Home/Documents/vlsi2/project3-convolution/tb_conv_pool.sv|
+!i113 1
+R5
+R6
