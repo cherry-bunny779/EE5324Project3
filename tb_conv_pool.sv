@@ -3,15 +3,15 @@
 module tb;
 //////////////////////////parmaeters////////////////////////////////////
 localparam	CLK_PERIOD=5;
-parameter	RUN_TIME=65638;
+parameter	RUN_TIME= 50;//65535*5;//100*20;//5*260;
 //////////////////////////////tb_interface/////////////////////////////
-logic	[127:0]	image [65635:0];
-logic	[7:0]	results_mem_0 [65635:0];
-logic	[7:0]	results_mem_1 [65635:0];
-logic	[7:0]	results_mem_2 [65635:0];
-logic	[7:0]	golden_results_0 [65635:0];
-logic	[7:0]	golden_results_1 [65635:0];
-logic	[7:0]	golden_results_2 [65635:0];
+logic	[127:0]	image [65535:0];
+logic	[7:0]	results_mem_0 [65535:0];
+logic	[7:0]	results_mem_1 [65535:0];
+logic	[7:0]	results_mem_2 [65535:0];
+logic	[7:0]	golden_results_0 [65535:0];
+logic	[7:0]	golden_results_1 [65535:0];
+logic	[7:0]	golden_results_2 [65535:0];
 logic	signed [71:0]	filter_0;
 logic	signed [71:0]	filter_1;
 logic	signed [71:0]	filter_2;
@@ -53,14 +53,15 @@ always
 	end
 task reset_dut();
   #(CLK_PERIOD/2) rst=0;
-  @(posedge clk_tb);
+  /*@(posedge clk_tb);
      #(CLK_PERIOD/3)  rst=1;	
+*/
 endtask
 /////////////////////////initalize image,filters////////////////////////////////////
 task initialize_image();
 		integer fp1,p;
 		fp1=$fopen("./image.txt","r");
-		for(i=0;i<65636;i++)
+		for(i=0;i<65536;i++)
 			  p=$fscanf(fp1,"%h\n",image[i]);
 		$fclose(fp1);        	       
 endtask
@@ -78,17 +79,17 @@ task initialize_filter();
 endtask
 task initialize_gloden_results();
 		integer fp1,p;
-  		fp1=$fopen("./golden_results_0.txt","r");
-		for(i=0;i<65636;i++)
+  		fp1=$fopen("golden_0.txt","r");
+		for(i=0;i<65536;i++)
 			p=$fscanf(fp1,"%h\n",golden_results_0[i]);
 		$fclose(fp1);  
-  		fp1=$fopen("./golden_results_1.txt","r");
-		for(i=0;i<65636;i++)
+  		fp1=$fopen("./golden_1.txt","r");
+		for(i=0;i<65536;i++)
 			p=$fscanf(fp1,"%h\n",golden_results_1[i]);
 		$fclose(fp1);  
-  		fp1=$fopen("./golden_results_1.txt","r");
-		for(i=0;i<65636;i++)
-			p=$fscanf(fp1,"%h\n",golden_results_1[i]);
+  		fp1=$fopen("./golden_2.txt","r");
+		for(i=0;i<65536;i++)
+			p=$fscanf(fp1,"%h\n",golden_results_2[i]);
 		$fclose(fp1);  
 endtask
 
@@ -100,7 +101,10 @@ assign dut_filter=2'b00;
 ////////////////////////////memory_read_models///////////////////////////////////////////////////////////
 always @(posedge clk_tb)
 begin
-	if	(dut_give_im==1) dut_image<=image[dut_im_address];
+	if	(dut_give_im==1) begin
+		dut_image<=image[dut_im_address];
+		dut_im_address <= dut_im_address + 1;
+	end
 	else dut_image<=0;
 end
 
@@ -118,13 +122,13 @@ task verify_dut();
 	bit error_check;
 	int i;
 	error_check=0;
-	for(i=0;i<65636;i++)
+	for(i=0;i<65536;i++)
 		begin
 			
 			if((results_mem_0[i])!==(golden_results_0[i]))
 			begin
 				error_check=1;
-				$display("FAILED...!!! Check results of kernel 0, block %d,result:%d,golden:%d\n",i,results_mem_0[i],golden_results_0[i]);
+				$display("FAILED...!!! Check results of kernel 0, block %d,result:%d,golden:%d, golden+1:%d  golden+2:%d  golden+3:%d\n",i,results_mem_0[i],golden_results_0[i],golden_results_0[i+1],golden_results_0[i+2],golden_results_0[i+3]);
 				$display("result:%h,golden:%h\n",results_mem_0[i],golden_results_0[i]);
 				break;
 			end
@@ -132,13 +136,13 @@ task verify_dut();
 	if(error_check==0)$display("PASS Kernel 0..!!\n");
 
 	error_check=0;
-	for(i=0;i<65636;i++)
+	for(i=0;i<65536;i++)
 		begin
 			
 			if((results_mem_1[i])!==(golden_results_1[i]))
 			begin
 				error_check=1;
-				$display("FAILED...!!! Check results of kernel 1, block %d,result:%d,golden:%d\n",i,results_mem_1[i],golden_results_1[i]);
+				$display("FAILED...!!! Check results of kernel 1, block %d,result:%d,golden:%d, golden+1:%d  golden+2:%d  golden+3:%d\n",i,results_mem_1[i],golden_results_1[i],golden_results_1[i+1],golden_results_1[i+2],golden_results_1[i+3]);
 				$display("result:%h,golden:%h\n",results_mem_1[i],golden_results_1[i]);
 				break;
 			end
@@ -146,13 +150,13 @@ task verify_dut();
 	if(error_check==0)$display("PASS Kernel 1..!!\n");
 
 	error_check=0;
-	for(i=0;i<65636;i++)
+	for(i=0;i<65536;i++)
 		begin
 			
 			if((results_mem_2[i])!==(golden_results_2[i]))
 			begin
 				error_check=1;
-				$display("FAILED...!!! Check results of kernel 2, block %d,result:%d,golden:%d\n",i,results_mem_2[i],golden_results_2[i]);
+				$display("FAILED...!!! Check results of kernel 2, block %d,result:%d,golden:%d golden+1:%d  golden+2:%d  golden+3:%d\n",i,results_mem_2[i],golden_results_2[i],golden_results_2[i+1],golden_results_2[i+2],golden_results_2[i+3]);
 				$display("result:%h,golden:%h\n",results_mem_2[i],golden_results_2[i]);
 				break;
 			end
@@ -163,15 +167,20 @@ endtask
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 initial 
 	begin
-		
+	dut_shift=0;
+	dut_give_im=0;
       	clk_tb=0;
+	rst=0;
+	dut_im_address=16'hFFFF;
 		initialize_filter();
 		initialize_gloden_results();
 		initialize_image();
 		reset_dut();
+		rst=1;
+		dut_give_im=1;
       		#(RUN_TIME);
 		verify_dut();
-		$finish();
+		$stop();
 	end	
 // To generate vcd required for Primtetime Power Analysis
 	
