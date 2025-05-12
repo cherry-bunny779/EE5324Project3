@@ -108,9 +108,9 @@ always_comb begin
   for (int ky = 0; ky < 3; ky++) begin
     for (int kx = 0; kx < 3; kx++) begin
       automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky, kx)});
-      c00_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx)) >>> 3;
-      c10_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx)) >>> 3;
-      c20_sum += (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx)) >>> 3;
+      c00_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
+      c10_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
+      c20_sum = c20_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
     end
   end
 
@@ -118,9 +118,9 @@ always_comb begin
   for (int ky = 0; ky < 3; ky++) begin
     for (int kx = 0; kx < 3; kx++) begin
       automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky, kx+1)});
-      c01_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx)) >>> 3;
-      c11_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx)) >>> 3;
-      c21_sum += (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx)) >>> 3;
+      c01_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
+      c11_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
+      c21_sum = c21_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
     end
   end
 
@@ -128,37 +128,38 @@ always_comb begin
   for (int ky = 0; ky < 3; ky++) begin
     for (int kx = 0; kx < 3; kx++) begin
       automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky+1, kx)});
-      c02_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx)) >>> 3;
-      c12_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx)) >>> 3;
-      c22_sum += (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx)) >>> 3;
+      c02_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
+      c12_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
+      c22_sum = c22_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
     end
   end
 
   // (1,1) Output
   for (int ky = 0; ky < 3; ky++) begin
+      //$display("img4x4 = %h\nkernel = %h", image_4x4_ffd, conv_kernel_2_ffd);
     for (int kx = 0; kx < 3; kx++) begin
       automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky+1, kx+1)});
-      c03_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx)) >>> 3;
-      c13_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx)) >>> 3;
-      c23_sum += (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx)) >>> 3;
-      $display("c23_sum: %h kernel %d\n",c23_sum,`KERNEL_VAL(conv_kernel_2_ffd, ky, kx) );
+      c03_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
+      c13_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
+      c23_sum = c23_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
+      //$display("c23_sum: %h kernel %d\n",c23_sum,`KERNEL_VAL(conv_kernel_2_ffd, ky, kx) );
     end
   end
 
-  c00_sum_shift = c00_sum >>> shift_ffd;
-  c01_sum_shift = c01_sum >>> shift_ffd;
-  c02_sum_shift = c02_sum >>> shift_ffd;
-  c03_sum_shift = c03_sum >>> shift_ffd;
+  c00_sum_shift = c00_sum >>> shift_ffd+3;
+  c01_sum_shift = c01_sum >>> shift_ffd+3;
+  c02_sum_shift = c02_sum >>> shift_ffd+3;
+  c03_sum_shift = c03_sum >>> shift_ffd+3;
 
-  c10_sum_shift = c10_sum >>> shift_ffd;
-  c11_sum_shift = c11_sum >>> shift_ffd;
-  c12_sum_shift = c12_sum >>> shift_ffd;
-  c13_sum_shift = c13_sum >>> shift_ffd;
+  c10_sum_shift = c10_sum >>> shift_ffd+3;
+  c11_sum_shift = c11_sum >>> shift_ffd+3;
+  c12_sum_shift = c12_sum >>> shift_ffd+3;
+  c13_sum_shift = c13_sum >>> shift_ffd+3;
 
-  c20_sum_shift = c20_sum >>> shift_ffd;
-  c21_sum_shift = c21_sum >>> shift_ffd;
-  c22_sum_shift = c22_sum >>> shift_ffd;
-  c23_sum_shift = c23_sum >>> shift_ffd;
+  c20_sum_shift = c20_sum >>> shift_ffd+3;
+  c21_sum_shift = c21_sum >>> shift_ffd+3;
+  c22_sum_shift = c22_sum >>> shift_ffd+3;
+  c23_sum_shift = c23_sum >>> shift_ffd+3;
 
 end
 
@@ -240,9 +241,9 @@ logic [15:0] output_addr_0_dff,output_addr_1_dff,output_addr_2_dff;
 always_ff @(posedge clk, negedge rst)begin
 
   if(!rst)begin
-    output_addr_0 <= 16'hFFFD;
-    output_addr_1 <= 16'hFFFD;
-    output_addr_2 <= 16'hFFFD;
+    output_addr_0 <= 16'hFFFC;
+    output_addr_1 <= 16'hFFFC;
+    output_addr_2 <= 16'hFFFC;
   end else begin
     output_addr_0 <= output_addr_0+1;
     output_addr_1 <= output_addr_2+1;
@@ -252,7 +253,7 @@ always_ff @(posedge clk, negedge rst)begin
 end
 
 // Output DFFs
-logic [2:0] output_we_0_offset,output_we_1_offset,output_we_2_offset;
+logic [3:0] output_we_0_offset,output_we_1_offset,output_we_2_offset;
 
 always_ff @(posedge clk, negedge rst) begin
 
@@ -260,10 +261,10 @@ if(!rst)begin
   y_0 <= '0;
   y_1 <= '0;
   y_2 <= '0;
-  output_we_0_offset <= 3'b001;
-  output_we_1_offset <= 3'b001;
-  output_we_2_offset <= 3'b001;
-end else if (output_we_0_offset[2] == 1) begin
+  output_we_0_offset <= 4'b0100;
+  output_we_1_offset <= 4'b0100;
+  output_we_2_offset <= 4'b0100;
+end else if (output_we_0_offset[3] == 1) begin
   y_0 <= y0_dff;
   y_1 <= y1_dff;
   y_2 <= y2_dff;
@@ -281,8 +282,8 @@ end
 
 end
 
-assign output_we_0 = output_we_0_offset[2];
-assign output_we_1 = output_we_1_offset[2];
-assign output_we_2 = output_we_2_offset[2];
+assign output_we_0 = output_we_0_offset[3];
+assign output_we_1 = output_we_1_offset[3];
+assign output_we_2 = output_we_2_offset[3];
 
 endmodule
