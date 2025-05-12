@@ -3,7 +3,7 @@
 module tb;
 //////////////////////////parmaeters////////////////////////////////////
 localparam	CLK_PERIOD=5;
-parameter	RUN_TIME= 50;//65535*5;//100*20;//5*260;
+parameter	RUN_TIME= 5*65535;//100*20;//5*260;
 //////////////////////////////tb_interface/////////////////////////////
 logic	[127:0]	image [65535:0];
 logic	[7:0]	results_mem_0 [65535:0];
@@ -68,13 +68,13 @@ endtask
 task initialize_filter();
 		integer fp1,p;
 		fp1=$fopen("./filter_0.txt","r");
-			  p=$fscanf(fp1,"%h\n",filter_0);
+			  p=$fscanf(fp1,"%b\n",filter_0);
 		$fclose(fp1);        
 		fp1=$fopen("./filter_1.txt","r");
-			  p=$fscanf(fp1,"%h\n",filter_1);
+			  p=$fscanf(fp1,"%b\n",filter_1);
 		$fclose(fp1);        
 		fp1=$fopen("./filter_2.txt","r");
-			  p=$fscanf(fp1,"%h\n",filter_2);
+			  p=$fscanf(fp1,"%b\n",filter_2);
 		$fclose(fp1);        
 endtask
 task initialize_gloden_results();
@@ -186,4 +186,5 @@ initial
 	
 
 endmodule	
+
 
