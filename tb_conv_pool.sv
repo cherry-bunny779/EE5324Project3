@@ -3,7 +3,7 @@
 module tb;
 //////////////////////////parmaeters////////////////////////////////////
 localparam	CLK_PERIOD=5;
-parameter	RUN_TIME= 5*65535;//100*20;//5*260;
+parameter	RUN_TIME= 5*65535*31;//100*20;//5*260;
 //////////////////////////////tb_interface/////////////////////////////
 logic	[127:0]	image [65535:0];
 logic	[7:0]	results_mem_0 [65535:0];
@@ -20,11 +20,11 @@ int i,j;
 ///////////////////////////DUT interface////////////////////////////////////////////////////
 logic	[127:0]	dut_image;
 logic	[(8*9)-1:0]	dut_kernel_0, dut_kernel_1, dut_kernel_2;
-logic	[15:0]	dut_im_address;
+logic	[15:0]	dut_im_address = 16'h0000;
 logic	[15:0]	dut_res_address_0, dut_res_address_1, dut_res_address_2;
 logic	[7:0]	dut_results_0, dut_results_1, dut_results_2;
 logic   [1:0]   dut_shift;
-logic 	dut_give_im, clk_tb, rst;
+logic 	dut_give_im, clk_tb, rst, dut_give_im_ffd;;
 logic   dut_take_results_0, dut_take_results_1, dut_take_results_2;
 //////////////////////////////////Instance of DUT///////////////////////////////////////
 conv_pool dut(	.clk(clk_tb),
@@ -34,7 +34,7 @@ conv_pool dut(	.clk(clk_tb),
 				.conv_kernel_1(dut_kernel_1),
 				.conv_kernel_2(dut_kernel_2),
 				.shift(dut_shift),
-				.input_re(dut_give_im),
+				.input_re(dut_give_im_ffd),
 				.input_addr(dut_im_address),
 				.output_we_0(dut_take_results_0),
 				.output_addr_0(dut_res_address_0),
@@ -105,9 +105,26 @@ begin
 		dut_image<=image[dut_im_address];
 		dut_im_address <= dut_im_address + 1;
 	end
-	else dut_image<=0;
+	else dut_image<=dut_image;
 end
 
+logic [7:0] counter = 8'h23;
+
+always @(posedge clk_tb) begin
+
+  if(counter == 8'h25) begin
+	counter <= 8'h00;
+	dut_give_im <= 1;
+  end else begin
+	counter <= counter + 1;
+	dut_give_im <= 0;
+  end
+end
+
+always @(posedge clk_tb) begin
+
+  dut_give_im_ffd <= dut_give_im;
+end
 ////////////////////////////memory_write_models///////////////////////////////////////////////////////////
 //initial results_mem=0;
 always @(posedge clk_tb)
@@ -156,7 +173,7 @@ task verify_dut();
 			if((results_mem_2[i])!==(golden_results_2[i]))
 			begin
 				error_check=1;
-				$display("FAILED...!!! Check results of kernel 2, block %d,result:%d,golden:%d golden+1:%d  golden+2:%d  golden+3:%d\n",i,results_mem_2[i],golden_results_2[i],golden_results_2[i+1],golden_results_2[i+2],golden_results_2[i+3]);
+				$display("FAILED...!!! Check results of kernel 2, block %d,result:%d,result+1:%d golden:%d golden+1:%d  golden+2:%d  golden+3:%d\n",i,results_mem_2[i],results_mem_2[i+1],golden_results_2[i],golden_results_2[i+1],golden_results_2[i+2],golden_results_2[i+3]);
 				$display("result:%h,golden:%h\n",results_mem_2[i],golden_results_2[i]);
 				break;
 			end
@@ -171,13 +188,13 @@ initial
 	dut_give_im=0;
       	clk_tb=0;
 	rst=0;
-	dut_im_address=16'hFFFF;
+	dut_im_address=16'h0000;
 		initialize_filter();
 		initialize_gloden_results();
 		initialize_image();
 		reset_dut();
 		rst=1;
-		dut_give_im=1;
+		//dut_give_im=1;
       		#(RUN_TIME);
 		verify_dut();
 		$stop();
@@ -186,5 +203,4 @@ initial
 	
 
 endmodule	
-
 
