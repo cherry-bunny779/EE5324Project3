@@ -1,3 +1,4 @@
+`timescale 1ps/1ps
 module conv_pool (
     input  logic        clk,
     input  logic        rst,
@@ -35,7 +36,7 @@ module conv_pool (
     logic [15:0]  input_addr_ffd;                // 16-bit input address
 
 // Input DFF
-always_ff @(posedge clk, negedge rst) begin
+always_ff @(posedge clk) begin
     if (!rst) begin
         image_4x4_ffd     <= '0;
         conv_kernel_0_ffd <= '0;
@@ -238,7 +239,7 @@ logic [15:0] output_addr_0_dff,output_addr_1_dff,output_addr_2_dff;
 // logic output_we_0_dff,output_we_1_dff,output_we_2_dff;
 
 // Result Address
-always_ff @(posedge clk, negedge rst)begin
+always_ff @(posedge clk)begin
 
   if(!rst)begin
     output_addr_0 <= 16'hFFFC;
@@ -255,7 +256,7 @@ end
 // Output DFFs
 logic [3:0] output_we_0_offset,output_we_1_offset,output_we_2_offset;
 
-always_ff @(posedge clk, negedge rst) begin
+always_ff @(posedge clk) begin
 
 if(!rst)begin
   y_0 <= '0;
