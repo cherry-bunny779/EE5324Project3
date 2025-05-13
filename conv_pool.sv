@@ -90,78 +90,133 @@ logic signed [21:0] c00_sum_shift, c01_sum_shift, c02_sum_shift,c03_sum_shift, c
 		c11_sum_shift, c12_sum_shift, c13_sum_shift, c20_sum_shift, c21_sum_shift, c22_sum_shift,c23_sum_shift;
 
 
+// Function to compute one multiply
+function automatic logic signed [17:0] convolve_accumulate (
+    input logic signed [8:0] px,
+    input logic [71:0] kernel,
+    input int ky,
+    input int kx
+);
+    logic signed [8:0] kernel_val;
+    logic signed [17:0] result;
+    int index;
+    begin
+        index = (ky * 3 + kx) * 8;
+        kernel_val = $signed({kernel[index + 7], kernel[index +: 8]});
+        result = px * kernel_val;
+        return result;
+    end
+endfunction
+
+// === Required Declarations ===
+typedef enum logic [2:0] {
+  IDLE,
+  LOAD_C00, LOAD_C01, LOAD_C02, LOAD_C03,
+  DONE
+} conv_state_t;
+
+logic [3:0] pipeline_index;
+conv_state_t state, next_state;
+logic start, done;
+
+assign start = input_re_ffd;
+// === Sequential FSM Block ===
+always_ff @(posedge clk, negedge rst) begin
+  if (!rst) begin
+    state <= IDLE;
+    pipeline_index <= 0;
+    done <= 0;
+
+    // Clear accumulators
+    c00_sum <= 0; c01_sum <= 0; c02_sum <= 0; c03_sum <= 0;
+    c10_sum <= 0; c11_sum <= 0; c12_sum <= 0; c13_sum <= 0;
+    c20_sum <= 0; c21_sum <= 0; c22_sum <= 0; c23_sum <= 0;
+  end else begin
+    state <= next_state;
+
+    if (state inside {LOAD_C00, LOAD_C01, LOAD_C02, LOAD_C03}) begin
+      automatic int ky = pipeline_index / 3;
+      automatic int kx = pipeline_index % 3;
+
+      logic signed [8:0] px;
+
+      case (state)
+        LOAD_C00: begin
+          px = $signed({1'b0, image_4x4_ffd[(ky)*32 + (kx)*8 +: 8]});
+          c00_sum <= c00_sum + convolve_accumulate(px, conv_kernel_0_ffd, ky, kx);
+          c10_sum <= c10_sum + convolve_accumulate(px, conv_kernel_1_ffd, ky, kx);
+          c20_sum <= c20_sum + convolve_accumulate(px, conv_kernel_2_ffd, ky, kx);
+        end
+        LOAD_C01: begin
+          px = $signed({1'b0, image_4x4_ffd[(ky)*32 + (kx+1)*8 +: 8]});
+          c01_sum <= c01_sum + convolve_accumulate(px, conv_kernel_0_ffd, ky, kx);
+          c11_sum <= c11_sum + convolve_accumulate(px, conv_kernel_1_ffd, ky, kx);
+          c21_sum <= c21_sum + convolve_accumulate(px, conv_kernel_2_ffd, ky, kx);
+        end
+        LOAD_C02: begin
+          px = $signed({1'b0, image_4x4_ffd[(ky+1)*32 + (kx)*8 +: 8]});
+          c02_sum <= c02_sum + convolve_accumulate(px, conv_kernel_0_ffd, ky, kx);
+          c12_sum <= c12_sum + convolve_accumulate(px, conv_kernel_1_ffd, ky, kx);
+          c22_sum <= c22_sum + convolve_accumulate(px, conv_kernel_2_ffd, ky, kx);
+        end
+        LOAD_C03: begin
+          px = $signed({1'b0, image_4x4_ffd[(ky+1)*32 + (kx+1)*8 +: 8]});
+          c03_sum <= c03_sum + convolve_accumulate(px, conv_kernel_0_ffd, ky, kx);
+          c13_sum <= c13_sum + convolve_accumulate(px, conv_kernel_1_ffd, ky, kx);
+          c23_sum <= c23_sum + convolve_accumulate(px, conv_kernel_2_ffd, ky, kx);
+        end
+      endcase
+
+      if (pipeline_index == 8)
+        pipeline_index <= 0;
+      else
+        pipeline_index <= pipeline_index + 1;
+    end
+
+    if (state == IDLE) begin
+      done <= 1;
+      	c00_sum <= 0; c01_sum <= 0; c02_sum <= 0; c03_sum <= 0;
+    	c10_sum <= 0; c11_sum <= 0; c12_sum <= 0; c13_sum <= 0;
+   	c20_sum <= 0; c21_sum <= 0; c22_sum <= 0; c23_sum <= 0;
+    end
+    else
+      done <= 0;
+  end
+end
+
+// === FSM Next-State Logic ===
 always_comb begin
-  // Clear accumulation registers
-  c00_sum = 0; c01_sum = 0; c02_sum = 0; c03_sum = 0;
-  c10_sum = 0; c11_sum = 0; c12_sum = 0; c13_sum = 0;
-  c20_sum = 0; c21_sum = 0; c22_sum = 0; c23_sum = 0;
+  case (state)
+    IDLE:       next_state = start ? LOAD_C00 : IDLE;
+    LOAD_C00:   next_state = (pipeline_index == 8) ? LOAD_C01 : LOAD_C00;
+    LOAD_C01:   next_state = (pipeline_index == 8) ? LOAD_C02 : LOAD_C01;
+    LOAD_C02:   next_state = (pipeline_index == 8) ? LOAD_C03 : LOAD_C02;
+    LOAD_C03:   next_state = (pipeline_index == 8) ? DONE     : LOAD_C03;
+    DONE:       next_state = IDLE;
+    default:    next_state = IDLE;
+  endcase
+end
 
-  // Manually unrolled 2x2 output grid
-  // Each (oy, ox) corresponds to one output value
-  // Output positions: (0,0), (0,1), (1,0), (1,1)
-  
-  // Macro to simplify pixel access (row, col from 0 to 3)
-  `define PIXEL(row, col) image_4x4_ffd[(row)*32 + (col)*8 +: 8]
-  `define KERNEL_VAL(kernel, ky, kx) $signed({kernel[((ky)*3 + (kx))*8 + 7], kernel[((ky)*3 + (kx))*8 +: 8]})
+// === Shift Output After Completion ===
+always_comb begin
 
-  // (0,0) Output
-  for (int ky = 0; ky < 3; ky++) begin
-    for (int kx = 0; kx < 3; kx++) begin
-      automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky, kx)});
-      c00_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
-      c10_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
-      c20_sum = c20_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
-    end
-  end
+    c00_sum_shift = c00_sum >>> (shift_ffd + 3);
+    c01_sum_shift = c01_sum >>> (shift_ffd + 3);
+    c02_sum_shift = c02_sum >>> (shift_ffd + 3);
+    c03_sum_shift = c03_sum >>> (shift_ffd + 3);
 
-  // (0,1) Output
-  for (int ky = 0; ky < 3; ky++) begin
-    for (int kx = 0; kx < 3; kx++) begin
-      automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky, kx+1)});
-      c01_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
-      c11_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
-      c21_sum = c21_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
-    end
-  end
+    c10_sum_shift = c10_sum >>> (shift_ffd + 3);
+    c11_sum_shift = c11_sum >>> (shift_ffd + 3);
+    c12_sum_shift = c12_sum >>> (shift_ffd + 3);
+    c13_sum_shift = c13_sum >>> (shift_ffd + 3);
 
-  // (1,0) Output
-  for (int ky = 0; ky < 3; ky++) begin
-    for (int kx = 0; kx < 3; kx++) begin
-      automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky+1, kx)});
-      c02_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
-      c12_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
-      c22_sum = c22_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
-    end
-  end
-
-  // (1,1) Output
-  for (int ky = 0; ky < 3; ky++) begin
-      //$display("img4x4 = %h\nkernel = %h", image_4x4_ffd, conv_kernel_2_ffd);
-    for (int kx = 0; kx < 3; kx++) begin
-      automatic logic signed [8:0] px = $signed({1'b0, `PIXEL(ky+1, kx+1)});
-      c03_sum += (px * `KERNEL_VAL(conv_kernel_0_ffd, ky, kx));
-      c13_sum += (px * `KERNEL_VAL(conv_kernel_1_ffd, ky, kx));
-      c23_sum = c23_sum + (px * `KERNEL_VAL(conv_kernel_2_ffd, ky, kx));
-      //$display("c23_sum: %h kernel %d\n",c23_sum,`KERNEL_VAL(conv_kernel_2_ffd, ky, kx) );
-    end
-  end
-
-  c00_sum_shift = c00_sum >>> shift_ffd+3;
-  c01_sum_shift = c01_sum >>> shift_ffd+3;
-  c02_sum_shift = c02_sum >>> shift_ffd+3;
-  c03_sum_shift = c03_sum >>> shift_ffd+3;
-
-  c10_sum_shift = c10_sum >>> shift_ffd+3;
-  c11_sum_shift = c11_sum >>> shift_ffd+3;
-  c12_sum_shift = c12_sum >>> shift_ffd+3;
-  c13_sum_shift = c13_sum >>> shift_ffd+3;
-
-  c20_sum_shift = c20_sum >>> shift_ffd+3;
-  c21_sum_shift = c21_sum >>> shift_ffd+3;
-  c22_sum_shift = c22_sum >>> shift_ffd+3;
-  c23_sum_shift = c23_sum >>> shift_ffd+3;
+    c20_sum_shift = c20_sum >>> (shift_ffd + 3);
+    c21_sum_shift = c21_sum >>> (shift_ffd + 3);
+    c22_sum_shift = c22_sum >>> (shift_ffd + 3);
+    c23_sum_shift = c23_sum >>> (shift_ffd + 3);
 
 end
+
 
 
 // 8-bit saturation
@@ -238,12 +293,12 @@ logic [15:0] output_addr_0_dff,output_addr_1_dff,output_addr_2_dff;
 // logic output_we_0_dff,output_we_1_dff,output_we_2_dff;
 
 // Result Address
-always_ff @(posedge clk, negedge rst)begin
+always_ff @(posedge done, negedge rst)begin
 
   if(!rst)begin
-    output_addr_0 <= 16'hFFFC;
-    output_addr_1 <= 16'hFFFC;
-    output_addr_2 <= 16'hFFFC;
+    output_addr_0 <= 16'hFFFE;
+    output_addr_1 <= 16'hFFFE;
+    output_addr_2 <= 16'hFFFE;
   end else begin
     output_addr_0 <= output_addr_0+1;
     output_addr_1 <= output_addr_2+1;
@@ -261,29 +316,16 @@ if(!rst)begin
   y_0 <= '0;
   y_1 <= '0;
   y_2 <= '0;
-  output_we_0_offset <= 4'b0100;
-  output_we_1_offset <= 4'b0100;
-  output_we_2_offset <= 4'b0100;
-end else if (output_we_0_offset[3] == 1) begin
-  y_0 <= y0_dff;
-  y_1 <= y1_dff;
-  y_2 <= y2_dff;
-  output_we_0_offset <= output_we_0_offset;
-  output_we_1_offset <= output_we_1_offset;
-  output_we_2_offset <= output_we_2_offset;
 end else begin
   y_0 <= y0_dff;
   y_1 <= y1_dff;
   y_2 <= y2_dff;
-  output_we_0_offset <= output_we_0_offset+1;
-  output_we_1_offset <= output_we_1_offset+1;
-  output_we_2_offset <= output_we_2_offset+1;
 end
 
 end
 
-assign output_we_0 = output_we_0_offset[3];
-assign output_we_1 = output_we_1_offset[3];
-assign output_we_2 = output_we_2_offset[3];
+assign output_we_0 = done;
+assign output_we_1 = done;
+assign output_we_2 = done;
 
 endmodule
