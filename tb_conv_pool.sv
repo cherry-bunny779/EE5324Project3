@@ -172,6 +172,7 @@ initial
       	clk_tb=0;
 	rst=0;
 	dut_im_address=16'hFFFF;
+	#(5);
 		initialize_filter();
 		initialize_gloden_results();
 		initialize_image();
