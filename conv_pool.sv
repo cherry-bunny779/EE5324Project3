@@ -117,7 +117,7 @@ typedef enum logic [2:0] {
 
 logic [3:0] pipeline_index;
 conv_state_t state, next_state;
-logic start, done;
+logic start, done, flag;
 
 assign start = input_re_ffd;
 // === Sequential FSM Block ===
@@ -173,14 +173,16 @@ always_ff @(posedge clk, negedge rst) begin
         pipeline_index <= pipeline_index + 1;
     end
 
+    if (state == DONE) done <= 1;
+    else done <= 0;
+
     if (state == IDLE) begin
-      done <= 1;
+
       	c00_sum <= 0; c01_sum <= 0; c02_sum <= 0; c03_sum <= 0;
     	c10_sum <= 0; c11_sum <= 0; c12_sum <= 0; c13_sum <= 0;
    	c20_sum <= 0; c21_sum <= 0; c22_sum <= 0; c23_sum <= 0;
     end
-    else
-      done <= 0;
+
   end
 end
 
@@ -293,16 +295,20 @@ logic [15:0] output_addr_0_dff,output_addr_1_dff,output_addr_2_dff;
 // logic output_we_0_dff,output_we_1_dff,output_we_2_dff;
 
 // Result Address
-always_ff @(posedge done, negedge rst)begin
+always_ff @(posedge clk, negedge rst)begin
 
   if(!rst)begin
-    output_addr_0 <= 16'hFFFE;
-    output_addr_1 <= 16'hFFFE;
-    output_addr_2 <= 16'hFFFE;
-  end else begin
+    output_addr_0 <= 16'h0000;
+    output_addr_1 <= 16'h0000;
+    output_addr_2 <= 16'h0000;
+  end else if (done) begin
     output_addr_0 <= output_addr_0+1;
     output_addr_1 <= output_addr_2+1;
     output_addr_2 <= output_addr_2+1;
+  end else begin
+    output_addr_0 <= output_addr_0;
+    output_addr_1 <= output_addr_2;
+    output_addr_2 <= output_addr_2;
   end
 
 end
